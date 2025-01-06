@@ -1,29 +1,19 @@
 ﻿using ConsoleApp1;
 using ConsoleApp1.Models;
 using System;
+using System.Collections.Generic;
 using System.IO.Ports;
 
 namespace WMBUSProtocol
 {
     public class Program
     {
+        private const int MaxBufferSize = 1024; // Maximum allowed buffer size to prevent unbounded growth
+
         public static void Main()
         {
-            string comPort = "COM1"; // Replace with your COM port
+            string comPort = "COM6"; // Replace with your COM port
             int baudRate = 9600;
-            byte[] buffer = new byte[256]; // Buffer to read raw bytes
-
-      
-            MessageType[] messageTypes = MessageTypeLoader.LoadMessageTypesFromJson("C:\\Users\\impul\\Documents\\ConsoleApp1\\TOMessage.json");
-            // Display the loaded message types
-            foreach (var messageType in messageTypes)
-            {
-                Console.WriteLine($"Name: {messageType.Name}");
-                Console.WriteLine($"MessageID: {messageType.MessageTypeID   }");
-                Console.WriteLine($"DataType: {messageType.DataType}");
-                Console.WriteLine($"Description: {messageType.Description}");
-                Console.WriteLine();
-            }
 
             using (SerialPort serialPort = new SerialPort(comPort, baudRate))
             {
@@ -33,51 +23,63 @@ namespace WMBUSProtocol
                     serialPort.Open();
                     Console.WriteLine($"Connected to {comPort} at {baudRate} baud.");
 
-                    // Encode and send a WMBUS message
-                    Message message1 = new Message();
-                    message1.MessageData = "He";
-                    MessageType message1type = new MessageType();
-                    message1.TypeofData = message1type;
-                    message1.TypeofData.Name = "A";
-                    message1.TypeofData.DataType = "Int";
-                    message1.TypeofData.Description = "B";
-                    message1.TypeofData.MessageTypeID = 0;
+                    // Buffer to store incoming data dynamically
+                    List<byte> dynamicBuffer = new List<byte>();
+
+                    // Encode and send a WMBUS message (example message)
+                    Message message1 = new Message
+                    {
+                        MessageData = "He",
+                        TypeofData = new MessageType
+                        {
+                            Name = "A",
+                            DataType = "Int",
+                            Description = "B",
+                            MessageTypeID = 0
+                        }
+                    };
+
                     byte[] encodedMessage = WMBUSProtocol.EncodeWMBUSMessage(0x01, message1);
                     serialPort.Write(encodedMessage, 0, encodedMessage.Length);
                     Console.WriteLine("Sent encoded WMBUS message.");
 
-                    // Read and decode WMBUS message
+                    // Read and decode WMBUS messages
                     while (true)
                     {
                         try
                         {
-                            int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
+                            // Read incoming bytes into a temporary buffer
+                            byte[] tempBuffer = new byte[256];
+                            int bytesRead = serialPort.Read(tempBuffer, 0, tempBuffer.Length);
 
                             if (bytesRead > 0)
                             {
-                                ProtocolMessage message = WMBUSProtocol.DecodeWMBUSMessage(buffer, bytesRead);
-
-                                if (message != null)
+                                // Add only the valid portion of tempBuffer to dynamicBuffer
+                                for (int i = 0; i < bytesRead; i++)
                                 {
-                                    Console.WriteLine("Received WMBUS message:");
-                                    Console.WriteLine(message.ToString());
+                                    dynamicBuffer.Add(tempBuffer[i]);
                                 }
-                                else
+
+                                // Process messages from the buffer
+                                ProcessBuffer(dynamicBuffer);
+
+                                // Ensure buffer does not grow uncontrollably
+                                if (dynamicBuffer.Count > MaxBufferSize)
                                 {
-                                    Console.WriteLine("Failed to decode WMBUS message.");
+                                    Console.WriteLine("Warning: Buffer exceeded maximum size. Clearing buffer to prevent memory issues.");
+                                    dynamicBuffer.Clear();
                                 }
                             }
                         }
                         catch (TimeoutException)
                         {
-                            Console.WriteLine("No data received within the timeout period.");
+                            // Timeout: no data received within the specified period
                         }
                         catch (Exception ex)
                         {
                             Console.WriteLine($"Unexpected error: {ex.Message}");
                         }
                     }
-
                 }
                 catch (Exception ex)
                 {
@@ -90,6 +92,39 @@ namespace WMBUSProtocol
                         serialPort.Close();
                         Console.WriteLine("Serial port closed.");
                     }
+                }
+            }
+        }
+
+        private static void ProcessBuffer(List<byte> buffer)
+        {
+            while (true)
+            {
+                // Look for the newline character as the delimiter
+                int newlineIndex = buffer.IndexOf((byte)'\n');
+                if (newlineIndex == -1)
+                {
+                    // No complete message in the buffer yet
+                    break;
+                }
+
+                // Extract the full message (up to the newline character)
+                byte[] messageBytes = buffer.GetRange(0, newlineIndex).ToArray();
+
+                // Remove the processed message (including the newline character) from the buffer
+                buffer.RemoveRange(0, newlineIndex + 1);
+
+                // Decode the WMBUS message
+                ProtocolMessage message = WMBUSProtocol.DecodeWMBUSMessage(messageBytes, messageBytes.Length);
+
+                if (message != null)
+                {
+                    Console.WriteLine("Received WMBUS message:");
+                    Console.WriteLine(message.ToString());
+                }
+                else
+                {
+                    Console.WriteLine("Failed to decode WMBUS message.");
                 }
             }
         }

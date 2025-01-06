@@ -20,7 +20,7 @@ namespace WMBUSProtocol
             wmbusPacket[0] = messageID;               // Message ID
             wmbusPacket[1] = (byte)payload.Length;    // Message Length
             wmbusPacket[2] = (byte)data.TypeofData.MessageTypeID;
-            Array.Copy(payload, 0, wmbusPacket, 2, payload.Length); // Payload
+            Array.Copy(payload, 0, wmbusPacket, 3, payload.Length); // Payload
             wmbusPacket[wmbusPacket.Length - 1] = checksum;         // Checksum
 
             return wmbusPacket;
