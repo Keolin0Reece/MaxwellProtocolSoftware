@@ -26,15 +26,15 @@ namespace ConsoleApp1
                 }
                 break;
 
-                case 1: //String
+                case 1: //Int
                 {
                 }
                 break;
-                case 2: //String
+                case 2: //Double
                 {
                 }
                 break;
-                case 3: //String
+                case 3: //Bool
                 {
                 }
                 break;

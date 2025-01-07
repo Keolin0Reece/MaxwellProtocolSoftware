@@ -9,6 +9,7 @@ namespace WMBUSProtocol
     public class Program
     {
         private const int MaxBufferSize = 1024; // Maximum allowed buffer size to prevent unbounded growth
+        
 
         public static void Main()
         {
@@ -26,17 +27,12 @@ namespace WMBUSProtocol
                     // Buffer to store incoming data dynamically
                     List<byte> dynamicBuffer = new List<byte>();
 
+                    MessageType[] messageTypes = MessageTypeLoader.LoadMessageTypesFromJson("C:\\Users\\impul\\Documents\\MaxwellProtocolSoftware\\TOMessage.json");
                     // Encode and send a WMBUS message (example message)
                     Message message1 = new Message
                     {
-                        MessageData = "He",
-                        TypeofData = new MessageType
-                        {
-                            Name = "A",
-                            DataType = "Int",
-                            Description = "B",
-                            MessageTypeID = 0
-                        }
+                        MessageData = "3",
+                        TypeofData = messageTypes[0]
                     };
 
                     byte[] encodedMessage = WMBUSProtocol.EncodeWMBUSMessage(0x01, message1);
@@ -62,6 +58,9 @@ namespace WMBUSProtocol
 
                                 // Process messages from the buffer
                                 ProcessBuffer(dynamicBuffer);
+
+                                serialPort.Write(encodedMessage, 0, encodedMessage.Length);
+                                Console.WriteLine("Sent encoded WMBUS message.");
 
                                 // Ensure buffer does not grow uncontrollably
                                 if (dynamicBuffer.Count > MaxBufferSize)
@@ -119,7 +118,7 @@ namespace WMBUSProtocol
 
                 if (message != null)
                 {
-                    Console.WriteLine("Received WMBUS message:");
+                    //Console.WriteLine("Received WMBUS message:");
                     Console.WriteLine(message.ToString());
                 }
                 else

@@ -2,25 +2,25 @@
   "messageTypes": [
     {
       "Name": "setPin",
-      "MessageTypeID": 1,
+      "MessageID": 1,
       "DataType": "int",
       "Description": "Sets the value of a pin"
     },
     {
       "Name": "getADC",
-      "MessageTypeID": 2,
-      "DataType": "int",
+      "MessageID": 2,
+      "DataType": "float",
       "Description": "Requests the ADC value"
     },
     {
       "Name": "streamADC",
-      "MessageTypeID":3,
+      "MessageID":3,
       "DataType": "float",
       "Description": "Streams ADC values continuously"
     },
     {
       "Name": "getPin",
-      "MessageTypeID": 4,
+      "MessageID": 4,
       "DataType": "int",
       "Description": "Gets the current value of a pin"
     }
